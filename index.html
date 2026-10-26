@@ -203,6 +203,7 @@ mark{background:#ffe58a;color:inherit;border-radius:2px;padding:0 1px}
   <span class="seg" data-for="cw" id="viewC"><button data-v="cmp" aria-pressed="true">대학별 4개년</button><button data-v="list" aria-pressed="false">학년도별 목록</button></span>
   <span class="seg" data-for="cw" id="yrC"><button data-v="0" aria-pressed="true">2026</button><button data-v="1" aria-pressed="false">2025</button><button data-v="2" aria-pressed="false">2024</button><button data-v="3" aria-pressed="false">2023</button></span>
   <select id="sortC" data-for="cw"><option value="name">대학 이름순</option><option value="k0">2026 합격률(지원자 대비 합격) 높은 순</option><option value="kavg">평균 합격률(지원자 대비 합격) 높은 순</option><option value="r0">2026 추합비율 높은 순</option><option value="ravg">평균 추합비율 높은 순</option></select>
+  <select id="passC" data-for="cw"><option value="">합격률: 전체</option><option value="a50">평균 합격률 50% 이상</option><option value="a70">평균 합격률 70% 이상</option><option value="a90">평균 합격률 90% 이상</option><option value="e70">매년 합격률 70% 이상</option><option value="e90">매년 합격률 90% 이상</option></select>
   <select id="minY" data-for="cw"><option value="0">자료 있는 해: 전체</option><option value="2">2개년 이상</option><option value="3">3개년 이상</option><option value="4">4개년 모두</option></select>
   <select id="numC" data-for="cw"><option value="">번호 빈 행 포함</option><option value="1">번호 있는 행만</option></select>
   <select id="sortS" data-for="sch"><option value="time">마감 빠른 순</option><option value="name">대학 이름순</option></select>
@@ -222,7 +223,7 @@ const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&g
 const fmt=v=>v==null||v===''?'':(typeof v==='number'?(Math.round(v*100)/100).toLocaleString('ko-KR'):v);
 const wide=()=>window.matchMedia('(min-width:900px)').matches;
 const norm=s=>String(s||'').toLowerCase().replace(/\s+/g,'');
-let st={sch:new Set(),minY:0,viewC:'cmp',yrC:0,sortC:'name',numC:'',typC:'',tab:'ratio',q:'',reg:'',gun:'',gye:'',sortR:'name',viewR:'grp',sortE:'d2',modeE:'real',sortS:'time',limit:80,open:new Set()};
+let st={sch:new Set(),minY:0,passC:'',viewC:'cmp',yrC:0,sortC:'name',numC:'',typC:'',tab:'ratio',q:'',reg:'',gun:'',gye:'',sortR:'name',viewR:'grp',sortE:'d2',modeE:'real',sortS:'time',limit:80,open:new Set()};
 try{const t=localStorage.getItem('jeongsi_tab');if(t)st.tab=t}catch(e){}
 function hl(text){
   text=esc(text); if(!st.q) return text;
@@ -609,8 +610,13 @@ function cwDetail(L){
 function cwDetailCard(L){
   return L.rs.map((r,yi)=>r?`<div class="cwline"><b>${r.y}</b> ${hl(r.unit)} · ${esc(r.gun)}군 · 모집 ${fmt(r.G)} · 지원 ${fmt(r.J)} · ${r.has?`총 합격 ${fmt(r.I)} · <b>합격률 ${pct(r.K)}</b> · 번호 ${fmt(r.H)} · 추합 ${pct(r.L)}`:`<span class="na">${esc(cwWhy(r))}</span>`}${r.note?`<div class="small cwmemo">비고: ${hl(r.note)}</div>`:''}${L.q[yi-1]===1?'<div class="small">다음 학년도와 전형 표기만 달라 이음</div>':''}</div>`:'').join('');
 }
+// 합격률 필터: a70 = 평균 70% 이상, e70 = 자료 있는 해가 모두 70% 이상 (미달 = 100%, 100% 초과는 100%로 봄)
+function passOkL(L){const p=st.passC;if(!p)return true;const t=+p.slice(1)/100;
+  if(p[0]==='a')return L.avgKc!=null&&L.avgKc>=t-1e-9;
+  const ks=L.rs.filter(r=>r&&r.kv!=null).map(r=>Math.min(r.kv,1));return ks.length>0&&ks.every(k=>k>=t-1e-9)}
+function passOkR(r){const p=st.passC;if(!p)return true;const t=+p.slice(1)/100;return r.kv!=null&&Math.min(r.kv,1)>=t-1e-9}
 function filtCwL(){
-  let a=CWL.filter(L=>L.rs.some(r=>r&&cwPass(r))&&(!+st.minY||L.nK>=+st.minY)&&match(L.hay));
+  let a=CWL.filter(L=>L.rs.some(r=>r&&cwPass(r))&&(!+st.minY||L.nK>=+st.minY)&&passOkL(L)&&match(L.hay));
   const nm=(x,y)=>x.school.localeCompare(y.school,'ko')||x.li-y.li;
   const by=f=>(x,y)=>{const a=f(x),b=f(y);if(a==null&&b==null)return nm(x,y);if(a==null)return 1;if(b==null)return -1;return b-a||nm(x,y)};
   // 합격 비율 정렬: 100%를 넘으면 100%로 보고(지원자 전원 합격), 같으면 자료 있는 해가 많은 곳 먼저
@@ -659,7 +665,7 @@ function renderCwCmp(){
   return h;
 }
 function filtCwR(){
-  let a=CWR.filter(r=>r.yi===st.yrC&&cwPass(r)&&(!st.numC||r.has)&&match(r.uni+' '+r.unit+' '+r.reg+' '+(CW.OLD[ALIASC[r.uni]]?ALIASC[r.uni]:'')));
+  let a=CWR.filter(r=>r.yi===st.yrC&&cwPass(r)&&(!st.numC||r.has)&&passOkR(r)&&match(r.uni+' '+r.unit+' '+r.reg+' '+(CW.OLD[ALIASC[r.uni]]?ALIASC[r.uni]:'')));
   const nm=(x,y)=>x.uni.localeCompare(y.uni,'ko')||x.i-y.i;
   const by=f=>(x,y)=>{const a=f(x),b=f(y);if(a==null&&b==null)return nm(x,y);if(a==null)return 1;if(b==null)return -1;return b-a||nm(x,y)};
   if(st.sortC==='k0') a.sort(by(r=>r.kv==null?null:Math.min(r.kv,1)));
@@ -731,13 +737,13 @@ function renderCw(){return st.viewC==='list'?renderCwList():renderCwCmp()}
 function render(){
   document.querySelectorAll('nav.tabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===st.tab));
   document.querySelectorAll('[data-for]').forEach(el=>el.style.display=el.dataset.for.split(' ').includes(st.tab)?'':'none');
-  if(st.tab==='cw'){$('#yrC').style.display=st.viewC==='list'?'':'none';$('#numC').style.display=st.viewC==='list'?'':'none';$('#minY').style.display=st.viewC==='cmp'?'':'none';[...$('#sortC').options].forEach(o=>{o.hidden=st.viewC==='list'&&(o.value==='kavg'||o.value==='ravg');if(o.value==='k0')o.textContent=st.viewC==='cmp'?'2026 합격률(지원자 대비 합격) 높은 순':'합격률(지원자 대비 합격) 높은 순';if(o.value==='r0')o.textContent=st.viewC==='cmp'?'2026 추합비율 높은 순':'추합비율 높은 순'});if($('#sortC').selectedOptions[0].hidden){st.sortC='name';$('#sortC').value='name'}}
+  if(st.tab==='cw'){$('#yrC').style.display=st.viewC==='list'?'':'none';$('#numC').style.display=st.viewC==='list'?'':'none';$('#minY').style.display=st.viewC==='cmp'?'':'none';[...$('#passC').options].forEach(o=>{if(o.value[0]==='e')o.hidden=st.viewC==='list';if(o.value[0]==='a')o.textContent=(st.viewC==='cmp'?'평균 합격률 ':'합격률 ')+o.value.slice(1)+'% 이상'});if($('#passC').selectedOptions[0].hidden){st.passC='';$('#passC').value=''}[...$('#sortC').options].forEach(o=>{o.hidden=st.viewC==='list'&&(o.value==='kavg'||o.value==='ravg');if(o.value==='k0')o.textContent=st.viewC==='cmp'?'2026 합격률(지원자 대비 합격) 높은 순':'합격률(지원자 대비 합격) 높은 순';if(o.value==='r0')o.textContent=st.viewC==='cmp'?'2026 추합비율 높은 순':'추합비율 높은 순'});if($('#sortC').selectedOptions[0].hidden){st.sortC='name';$('#sortC').value='name'}}
   $('#meta').innerHTML=st.tab==='cw'?CWMETA:META0;$('.notice').style.display=st.tab==='cw'?'none':'';
   $('#out').innerHTML=st.tab==='ratio'?renderRatio():st.tab==='eng'?((st.modeE==='real'||st.modeE==='rd')?renderEngReal():renderEng()):st.tab==='chg'?renderChg():st.tab==='cw'?renderCw():renderSch();
   $('#foot').innerHTML=st.tab==='ratio'?'숫자 칸은 요강의 명목 배점 비율입니다. 단계별 전형은 최종 단계 기준이며 단계 구성은 세부 내용의 「기타 요소」에 있습니다.'
    :st.tab==='eng'?((st.modeE==='real'||st.modeE==='rd')?'실제 점수·실제 감점: 대학마다 수능 환산 총점(1000·600·500점 등)이 달라, 그 총점 그대로 영어 등급별 점수를 적었습니다. 같은 대학 안에서 다른 영역 점수와 바로 비교할 수 있습니다(국·수·탐 반영 방식은 「계산식·다른 영역」에). 영어 비율이 성적 순위로 정해지는 대학은 순위별로 나눴고, 표준점수 합에서 감점하는 대학은 총점이 「고정 안 됨」입니다. 요강에 식이 없어 계산한 곳은 메모에 적었습니다. 27 요강에서 뽑은 뒤 따로 검수했습니다.':'1000점 기준 계산: 비율형 = 원문 ÷ 영어 만점 × 영어 비율 × 1000, 감점·가산형 = 원문 × 1000 ÷ 기준 수능 총점. 같은 영어표라도 모집단위마다 영어 비율이 다르면 따로 나눠 계산했습니다.')
    :st.tab==='chg'?'원본 표의 94개교(99개 캠퍼스) 모두 26학년도 정시 요강과 27학년도 정시 요강을 비교하고, 짝이 없는 모집단위는 두 해 요강 원문(변경사항·각주)으로 판정한 뒤 별도 검수했습니다(근거에 요강 쪽). 정원내 전형(지원자 입장에서 같은 정원외 계약학과 포함)만, 예체능 계열은 빼고 비교했고, 의약·일부 학과만 정리한 대학은 같은 범위만 비교했습니다. 인원 증감은 비교하지 않았습니다. 재직자·평생학습자·성인학습자·만학도 전형과 실기가 들어가는 전형만 있는 모집단위는 뺐습니다.'
-   :st.tab==='cw'?'<b>합격률(지원자 대비 합격자 비율)</b> = 총 합격자수(모집인원 + 번호) ÷ 지원인원. 100%에 가까우면 지원자 대부분이 합격한 곳이고, 100%를 넘으면 지원자보다 합격 자리가 많았던 곳입니다. <b>추합비율</b> = 번호 ÷ 모집인원. 번호(누적)는 충원합격 순위(최초 합격 인원을 뺀 마지막 충원 합격자 순위)이며, 대학 원문이 충원 인원만 주거나 비율로만 공개해 환산한 곳은 비고에 적었습니다. 번호가 빈 행 중 지원인원이 모집인원 이하인 곳은 「미달」로 표시했고, 정렬·평균에서만 지원자 대비 합격 비율 100%로 셉니다(엑셀 값과 합계에는 넣지 않음). 그 밖의 빈 행은 사유(어디가 미제출·원문 없음·묶음 공개)를 표시했습니다. 자료: 어디가 「전형평가기준 및 전년도 결과공개」 + 대학 입학처 입시결과(2026-10-26 정리), 행 기준은 학년도별 정시 경쟁률 파일. 대상은 정원내 일반·지역인재 전형(인문·자연·공통 + 수능 100% 예체능)이며 특별전형·실기 전형은 뺐습니다. 대학별 4개년 보기는 같은 대학 안에서 모집단위 이름이 같거나 뒤의 전형 표기(_일반, _일반학생1 등)만 다른 것을 이어 붙인 것이며, 학과 개편·이름 변경은 잇지 않았습니다. 평균은 학년도 비율의 단순 평균입니다. 「합격률 높은 순」 정렬에서는 100%를 넘는 값을 100%로 보고(지원자 전원 합격), 비율이 같으면 자료가 있는 해가 많은 곳을 앞에 둡니다.'
+   :st.tab==='cw'?'<b>합격률(지원자 대비 합격자 비율)</b> = 총 합격자수(모집인원 + 번호) ÷ 지원인원. 100%에 가까우면 지원자 대부분이 합격한 곳이고, 100%를 넘으면 지원자보다 합격 자리가 많았던 곳입니다. <b>추합비율</b> = 번호 ÷ 모집인원. 번호(누적)는 충원합격 순위(최초 합격 인원을 뺀 마지막 충원 합격자 순위)이며, 대학 원문이 충원 인원만 주거나 비율로만 공개해 환산한 곳은 비고에 적었습니다. 번호가 빈 행 중 지원인원이 모집인원 이하인 곳은 「미달」로 표시했고, 정렬·평균에서만 지원자 대비 합격 비율 100%로 셉니다(엑셀 값과 합계에는 넣지 않음). 그 밖의 빈 행은 사유(어디가 미제출·원문 없음·묶음 공개)를 표시했습니다. 자료: 어디가 「전형평가기준 및 전년도 결과공개」 + 대학 입학처 입시결과(2026-10-26 정리), 행 기준은 학년도별 정시 경쟁률 파일. 대상은 정원내 일반·지역인재 전형(인문·자연·공통 + 수능 100% 예체능)이며 특별전형·실기 전형은 뺐습니다. 대학별 4개년 보기는 같은 대학 안에서 모집단위 이름이 같거나 뒤의 전형 표기(_일반, _일반학생1 등)만 다른 것을 이어 붙인 것이며, 학과 개편·이름 변경은 잇지 않았습니다. 평균은 학년도 비율의 단순 평균입니다. 합격률 필터(평균/매년 ○% 이상, 목록 보기는 그 학년도)와 「합격률 높은 순」 정렬에서는 미달을 100%로, 100%를 넘는 값을 100%로 보고(지원자 전원 합격), 비율이 같으면 자료가 있는 해가 많은 곳을 앞에 둡니다.'
    :'원서 마감 시각은 요강에 적힌 시각입니다. 대행 사이트 사정으로 바뀔 수 있으니 접수 직전 입학처 공지를 확인하세요.';
 }
 document.querySelectorAll('nav.tabs button').forEach(b=>b.onclick=()=>{st.tab=b.dataset.tab;st.limit=80;st.open.clear();try{localStorage.setItem('jeongsi_tab',st.tab)}catch(e){};render();window.scrollTo({top:0})});
@@ -751,7 +757,7 @@ $('#q').onfocus=()=>sugShow();
 $('#q').onblur=()=>setTimeout(()=>{$('#sug').hidden=true;$('#q').setAttribute('aria-expanded','false')},180);
 $('#sug').addEventListener('pointerdown',e=>{const b=e.target.closest('button[data-b]');if(!b)return;e.preventDefault();clearTimeout(qt);sugPick(b.dataset.b)});
 $('#schips').addEventListener('click',e=>{const x=e.target.closest('[data-x]');if(x){st.sch.delete(x.dataset.x)}else if(e.target.closest('[data-clr]')){st.sch.clear()}else return;chipsShow();st.limit=80;st.open.clear();render()});
-['reg','gun','gye','sortR','sortE','sortS','typC','sortC','numC','minY'].forEach(id=>$('#'+id).onchange=e=>{st[id]=e.target.value;st.limit=80;render()});
+['reg','gun','gye','sortR','sortE','sortS','typC','sortC','numC','minY','passC'].forEach(id=>$('#'+id).onchange=e=>{st[id]=e.target.value;st.limit=80;render()});
 [['viewR','viewR'],['modeE','modeE'],['viewC','viewC'],['yrC','yrC']].forEach(([id,key])=>$('#'+id).querySelectorAll('button').forEach(b=>b.onclick=()=>{st[key]=key==='yrC'?+b.dataset.v:b.dataset.v;st.limit=80;$('#'+id).querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));st.open.clear();render()}));
 $('#out').addEventListener('click',e=>{
   if(e.target.closest('[data-more]')){st.limit+=150;render();return}
