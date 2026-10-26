@@ -140,6 +140,23 @@ mark{background:#ffe58a;color:inherit;border-radius:2px;padding:0 1px}
 .cwrow .cwc{padding:1px 6px;border-radius:4px}
 .cwline{padding:6px 0;border-bottom:1px dashed var(--line);font-size:12.5px}
 .cwline:last-child{border-bottom:0}
+
+/* 대학 고르기 */
+.qwrap{position:relative;flex:1 1 240px;min-width:0;display:flex}
+.qwrap input[type=search]{flex:1 1 auto;width:100%}
+.sug{position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:20;background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.14);max-height:min(360px,55vh);overflow:auto;padding:4px}
+.sug[hidden]{display:none}
+.sug .sh{font-size:11.5px;color:var(--faint);padding:6px 10px 2px}
+.sug button{display:flex;justify-content:space-between;gap:10px;width:100%;border:0;background:none;font:inherit;color:var(--ink);text-align:left;padding:9px 10px;border-radius:7px;cursor:pointer}
+.sug button.on,.sug button:hover{background:var(--accent-soft)}
+.sug button small{color:var(--sub);font-size:12px;white-space:nowrap}
+.schips{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:-4px 0 10px}
+.schips[hidden]{display:none}
+.schips .lab{font-size:12.5px;color:var(--sub)}
+.schip{display:inline-flex;align-items:center;gap:2px;background:var(--accent-soft);color:var(--accent);font-weight:500;font-size:13px;border-radius:999px;padding:3px 4px 3px 11px}
+.schip button{border:0;background:none;color:inherit;font:inherit;font-size:15px;line-height:1;padding:2px 6px;cursor:pointer;border-radius:999px}
+.schip button:hover{background:color-mix(in srgb,var(--accent) 18%,transparent)}
+.schips .clr{border:0;background:none;color:var(--sub);font:inherit;font-size:12.5px;text-decoration:underline;cursor:pointer;padding:3px 4px}
 @media (max-width:899px){
   .lg{display:none}
   nav.tabs button{padding:9px 10px}
@@ -167,7 +184,7 @@ mark{background:#ffe58a;color:inherit;border-radius:2px;padding:0 1px}
   <button role="tab" data-tab="cw" aria-selected="false">추가합격<span class="lg"> 비율</span></button>
 </nav>
 <div class="bar" id="bar">
-  <input type="search" id="q" placeholder="대학·모집단위·전형 검색 (예: 의예, 연세, 자유전공)" autocomplete="off">
+  <div class="qwrap"><input type="search" id="q" placeholder="대학 이름을 치면 후보가 떠요 · 모집단위도 검색 (예: 연세, 의예)" autocomplete="off" role="combobox" aria-autocomplete="list" aria-controls="sug" aria-expanded="false"><div class="sug" id="sug" role="listbox" hidden></div></div>
   <select id="reg"><option value="">전체 지역</option></select>
   <select id="gun" data-for="ratio eng chg cw"><option value="">전체 군</option><option value="가">가군</option><option value="나">나군</option><option value="다">다군</option></select>
   <select id="gye" data-for="ratio chg cw"><option value="">전체 계열</option><option>인문</option><option>자연</option><option>예체능</option><option>공통</option></select>
@@ -186,6 +203,7 @@ mark{background:#ffe58a;color:inherit;border-radius:2px;padding:0 1px}
   <select id="numC" data-for="cw"><option value="">번호 빈 행 포함</option><option value="1">번호 있는 행만</option></select>
   <select id="sortS" data-for="sch"><option value="time">마감 빠른 순</option><option value="name">대학 이름순</option></select>
 </div>
+<div class="schips" id="schips" hidden></div>
 <main id="out"></main>
 <div class="foot" id="foot"></div>
 </div>
@@ -200,7 +218,7 @@ const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&g
 const fmt=v=>v==null||v===''?'':(typeof v==='number'?(Math.round(v*100)/100).toLocaleString('ko-KR'):v);
 const wide=()=>window.matchMedia('(min-width:900px)').matches;
 const norm=s=>String(s||'').toLowerCase().replace(/\s+/g,'');
-let st={viewC:'cmp',yrC:0,sortC:'name',numC:'',typC:'',tab:'ratio',q:'',reg:'',gun:'',gye:'',sortR:'name',viewR:'grp',sortE:'d2',modeE:'real',sortS:'time',limit:80,open:new Set()};
+let st={sch:new Set(),viewC:'cmp',yrC:0,sortC:'name',numC:'',typC:'',tab:'ratio',q:'',reg:'',gun:'',gye:'',sortR:'name',viewR:'grp',sortE:'d2',modeE:'real',sortS:'time',limit:80,open:new Set()};
 try{const t=localStorage.getItem('jeongsi_tab');if(t)st.tab=t}catch(e){}
 function hl(text){
   text=esc(text); if(!st.q) return text;
@@ -259,7 +277,7 @@ function unitText(g){
 }
 function filtR(){
   const base=st.viewR==='grp'?GROUPS:UNITS;
-  let a=base.filter(g=>{const r=g.r;return (!st.reg||r['권역']===st.reg)&&(!st.gun||r['군']===st.gun)&&(!st.gye||r['계열']===st.gye)&&match(g.hay)});
+  let a=base.filter(g=>{const r=g.r;return (!st.reg||r['권역']===st.reg)&&(!st.gun||r['군']===st.gun)&&(!st.gye||r['계열']===st.gye)&&sok(g.sb)&&match(g.hay)});
   const key={k:'국어(%)',m:'수학(%)',t:'탐구(%)',e:'영어(%)'}[st.sortR];
   const nm=(x,y)=>x.r['학교명'].localeCompare(y.r['학교명'],'ko')||String(x.r['캠퍼스']).localeCompare(String(y.r['캠퍼스']),'ko')||x.r['군'].localeCompare(y.r['군'],'ko')||String(x.r['전형명']).localeCompare(String(y.r['전형명']),'ko');
   if(key) a.sort((x,y)=>(y.r[key]??-1)-(x.r[key]??-1)||nm(x,y));
@@ -324,7 +342,7 @@ function methodTxt(e){
   return e.method||'';
 }
 function filtE(){
-  let a=ENG.filter(e=>(!st.reg||e.reg===st.reg)&&(!st.gun||e.gun.includes(st.gun))&&match(e.hay));
+  let a=ENG.filter(e=>(!st.reg||e.reg===st.reg)&&(!st.gun||e.gun.includes(st.gun))&&sok(e.sb)&&match(e.hay));
   const nm=(x,y)=>x.school.localeCompare(y.school,'ko')||x.id.localeCompare(y.id);
   if(st.sortE==='name') a.sort(nm);
   else{const i=st.sortE==='d2'?0:1; a.sort((x,y)=>{const dx=x.basis?x.d[i]:null, dy=y.basis?y.d[i]:null; if(dx==null&&dy==null) return nm(x,y); if(dx==null) return 1; if(dy==null) return -1; return dx-dy||nm(x,y)})}
@@ -378,7 +396,7 @@ function cellR(e,i){
   return i===0?'기준':(e.d[i-1]==null?'–':fmt(e.d[i-1]));
 }
 function filtER(){
-  let a=ERX.filter(e=>(!st.reg||e.reg===st.reg)&&(!st.gun||e.gun.includes(st.gun))&&match(e.hay));
+  let a=ERX.filter(e=>(!st.reg||e.reg===st.reg)&&(!st.gun||e.gun.includes(st.gun))&&sok(e.sb)&&match(e.hay));
   const nm=(x,y)=>x.school.localeCompare(y.school,'ko')||x.id.localeCompare(y.id);
   if(st.sortE==='name') a.sort(nm);
   else{const i=st.sortE==='d2'?0:1; a.sort((x,y)=>{const dx=rel(x,x.d[i]), dy=rel(y,y.d[i]); if(dx==null&&dy==null) return nm(x,y); if(dx==null) return 1; if(dy==null) return -1; return dx-dy||nm(x,y)})}
@@ -429,7 +447,7 @@ function detailS(s){
   return `<dl class="dl">${rows.filter(x=>x[1]).map(([a,b])=>`<dt>${a}</dt><dd>${hl(b)}</dd>`).join('')}</dl>`;
 }
 function renderSch(){
-  let a=SCH.filter(s=>(!st.reg||s._reg===st.reg)&&match(s.hay));
+  let a=SCH.filter(s=>(!st.reg||s._reg===st.reg)&&sok(s.sb)&&match(s.hay));
   const nm=(x,y)=>x['학교명'].localeCompare(y['학교명'],'ko');
   a.sort(st.sortS==='time'?((x,y)=>x.end-y.end||nm(x,y)):nm);
   let h=`<p class="count"><b>${a.length}</b>개교 · 마감 시각은 요강 기준(원서접수 사이트 마감 시각)</p>`;
@@ -507,11 +525,11 @@ function filtC(){
     if(st.typC&&st.typC!=='all'&&!r.t.includes(st.typC)) return false;
     if(st.gun&&!((r.g27+' '+r.g26).includes(st.gun))) return false;
     if(st.gye&&!r.g.split('·').includes(st.gye)) return false;
-    return (!st.reg||r._reg===st.reg)&&match(r.hay)});
+    return (!st.reg||r._reg===st.reg)&&sok(r.sb)&&match(r.hay)});
 }
 function renderChg(){
   const a=filtC();
-  const base=CH.filter(r=>(!st.reg||r._reg===st.reg)&&match(r.hay));
+  const base=CH.filter(r=>(!st.reg||r._reg===st.reg)&&sok(r.sb)&&match(r.hay));
   const cnt=k=>base.filter(r=>r.t.includes(k)).length;
   let h=`<p class="count"><b>${a.length.toLocaleString()}</b>개 모집단위 · ${new Set(a.map(r=>r.s)).size}개교</p>`;
   h+=`<div class="chips">${CHT.map(([k,c])=>`<span class="chip"><span class="tag ${c}">${k==='정시 신규'?'정시 신규 배정':k==='정시 고정'?'정시 고정 인원 배정':k==='전형 추가'?'지역의사·의료 전형':k}</span> <b>${cnt(k)}</b></span>`).join('')}</div>`;
@@ -558,7 +576,7 @@ const CWL=CW.L.map(([c,q],li)=>{const rs=c.map(ri=>ri<0?null:CWR[ri]);const late
   const names=[...new Set(rs.filter(Boolean).map(r=>r.unit))];
   return {li,rs,q,latest,school,avg,nav:vals.length,guns,names,
     hay:[school,...(CW.OLD[school]||[]),...rs.filter(Boolean).map(r=>r.uni+' '+r.unit+' '+r.reg)].join(' ')}});
-function cwPass(r){return (!st.reg||r.kwon===st.reg)&&(!st.gun||r.gun===st.gun)&&(!st.gye||r.gye===st.gye)}
+function cwPass(r){return sok(r.sb)&&(!st.reg||r.kwon===st.reg)&&(!st.gun||r.gun===st.gun)&&(!st.gye||r.gye===st.gye)}
 function cwSum(list){ // 엑셀 1행 합계와 같은 방식: 번호 있는 행만
   const a=list.filter(r=>r.has); const G=a.reduce((s,r)=>s+(r.G||0),0), H=a.reduce((s,r)=>s+r.H,0), I=a.reduce((s,r)=>s+r.I,0), J=a.reduce((s,r)=>s+(r.J||0),0);
   return {n:list.length,m:a.length,G,H,I,J,K:J?I/J:null,L:G?H/G:null};
@@ -662,6 +680,39 @@ function renderCwList(){
   if(a.length>st.limit) h+=`<button class="more" data-more>더 보기 (${(a.length-st.limit).toLocaleString()}개 남음)</button>`;
   return h;
 }
+
+// ---------- 대학 고르기 (모든 탭 공통) ----------
+// 탭마다 대학 이름 표기가 달라(가천대학교/가천대, 한국외국어대/한국외대) 하나의 이름으로 맞춘다. 캠퍼스는 묶는다.
+const OFF={'경상대':'경상국립대','한국외대':'한국외국어대','한경대':'한경국립대','목포대':'국립목포대','순천대':'국립순천대'};
+const SYN={'국립목포대':['목포대'],'국립순천대':['순천대'],'한국외국어대':['한국외대'],'경상국립대':['경상대'],'한경국립대':['한경대'],'강원대':['강릉원주대'],'경국대':['안동대'],'서울과학기술대':['서울과기대'],'부산외대':['부산외국어대'],'장로회신학대':['장신대']};
+function sbase(n){n=String(n||'').trim();const c=ALIASC[n]||n;const b=c.replace(/\(.*?\)/g,'').replace(/여자대학교$/,'여대').replace(/교육대학교$/,'교대').replace(/대학교$/,'대').trim();return OFF[b]||b}
+const sok=b=>!st.sch.size||st.sch.has(b);
+GROUPS.forEach(g=>g.sb=sbase(g.r['학교명']));UNITS.forEach(g=>g.sb=sbase(g.r['학교명']));
+ENG.forEach(e=>e.sb=sbase(e.school));ERX.forEach(e=>e.sb=sbase(e.school));SCH.forEach(x=>x.sb=sbase(x['학교명']));
+CH.forEach(r=>r.sb=sbase(r.s));CWR.forEach(r=>r.sb=sbase(r.uni));
+const SCHOOLS=(()=>{const m=new Map();const add=(b,reg)=>{if(!b)return;if(!m.has(b))m.set(b,new Set());if(reg)m.get(b).add(reg)};
+  GROUPS.forEach(g=>add(g.sb,g.r['권역']));ENG.forEach(e=>add(e.sb,e.reg));ERX.forEach(e=>add(e.sb,e.reg));SCH.forEach(x=>add(x.sb,x._reg));CH.forEach(r=>add(r.sb,r._reg));CWR.forEach(r=>add(r.sb,r.kwon));
+  return [...m].map(([b,regs])=>({b,regs:[...regs],keys:[b,...(SYN[b]||[])].map(norm)})).sort((x,y)=>x.b.localeCompare(y.b,'ko'))})();
+let sugList=[],sugOn=0;
+function lastTok(v){const m=v.match(/(\S+)$/);return m?m[1]:''}
+function sugFind(v){const t=norm(lastTok(v));if(!t)return [];
+  const hit=SCHOOLS.filter(x=>!st.sch.has(x.b)&&x.keys.some(k=>k.includes(t)));
+  const pre=x=>x.keys.includes(t)?0:x.keys.some(k=>k.startsWith(t))?1:2;
+  return hit.sort((x,y)=>pre(x)-pre(y)||x.b.localeCompare(y.b,'ko')).slice(0,8)}
+// 정확히 같은 이름이거나 후보가 하나뿐일 때만 Enter로 바로 고른다(그 밖에는 화살표로 고르기)
+function sugDefault(v){const t=norm(lastTok(v));if(!sugList.length)return -1;if(sugList[0].keys.includes(t)||sugList.length===1)return 0;return -1}
+function sugShow(){const box=$('#sug');sugList=sugFind($('#q').value);sugOn=sugDefault($('#q').value);
+  if(!sugList.length){box.hidden=true;$('#q').setAttribute('aria-expanded','false');return}
+  box.innerHTML='<div class="sh">대학 고르기 — 누르면 그 대학만 봅니다</div>'+sugList.map((x,i)=>`<button type="button" role="option" data-b="${esc(x.b)}" class="${i===sugOn?'on':''}"><span>${hl2(x.b)}</span><small>${esc(x.regs.join(' / '))}</small></button>`).join('');
+  box.hidden=false;$('#q').setAttribute('aria-expanded','true')}
+function hl2(b){const t=lastTok($('#q').value).replace(/[.*+?^${}()|[\]\\]/g,'\\$&');return t?esc(b).replace(new RegExp('('+t+')','i'),'<mark>$1</mark>'):esc(b)}
+function sugMove(d){if(!sugList.length)return;sugOn=sugOn<0?(d>0?0:sugList.length-1):(sugOn+d+sugList.length)%sugList.length;$('#sug').querySelectorAll('button').forEach((b,i)=>b.classList.toggle('on',i===sugOn))}
+function sugPick(b){st.sch.add(b);const q=$('#q');q.value=q.value.replace(/\S+\s*$/,'').trimEnd();st.q=q.value;st.limit=80;st.open.clear();
+  $('#sug').hidden=true;$('#q').setAttribute('aria-expanded','false');chipsShow();render()}
+function chipsShow(){const box=$('#schips');
+  if(!st.sch.size){box.hidden=true;box.innerHTML='';return}
+  box.innerHTML='<span class="lab">고른 대학</span>'+[...st.sch].map(b=>`<span class="schip">${esc(b)}<button type="button" data-x="${esc(b)}" aria-label="${esc(b)} 빼기">×</button></span>`).join('')+(st.sch.size>1?'<button type="button" class="clr" data-clr>모두 지우기</button>':'');
+  box.hidden=false}
 const CWMETA=`기준 <b>2026-10-26</b> · 23~26학년도 정시 충원정리 · <b>${new Set(CWR.map(r=>ALIASC[r.uni]||r.uni)).size}</b>개교 · ${CWY.map((y,yi)=>{const n=CWR.filter(r=>r.yi===yi);return `${y} <b>${n.filter(r=>r.has).length.toLocaleString()}</b>/${n.length.toLocaleString()}행`}).join(' · ')} (번호 있는 행/전체)`;
 function renderCw(){return st.viewC==='list'?renderCwList():renderCwCmp()}
 
@@ -679,7 +730,16 @@ function render(){
    :'원서 마감 시각은 요강에 적힌 시각입니다. 대행 사이트 사정으로 바뀔 수 있으니 접수 직전 입학처 공지를 확인하세요.';
 }
 document.querySelectorAll('nav.tabs button').forEach(b=>b.onclick=()=>{st.tab=b.dataset.tab;st.limit=80;st.open.clear();try{localStorage.setItem('jeongsi_tab',st.tab)}catch(e){};render();window.scrollTo({top:0})});
-let qt; $('#q').oninput=e=>{clearTimeout(qt);qt=setTimeout(()=>{st.q=e.target.value;st.limit=80;render()},150)};
+let qt; $('#q').oninput=e=>{sugShow();clearTimeout(qt);qt=setTimeout(()=>{st.q=e.target.value;st.limit=80;render()},150)};
+$('#q').onkeydown=e=>{const open=!$('#sug').hidden&&sugList.length;
+  if(e.key==='ArrowDown'&&open){e.preventDefault();sugMove(1)}else if(e.key==='ArrowUp'&&open){e.preventDefault();sugMove(-1)}
+  else if(e.key==='Enter'&&open){if(sugOn>=0){e.preventDefault();clearTimeout(qt);sugPick(sugList[sugOn].b)}else{$('#sug').hidden=true}}
+  else if(e.key==='Escape'){$('#sug').hidden=true}
+  else if(e.key==='Backspace'&&!e.target.value&&st.sch.size){const l=[...st.sch].pop();st.sch.delete(l);chipsShow();st.limit=80;render()}};
+$('#q').onfocus=()=>sugShow();
+$('#q').onblur=()=>setTimeout(()=>{$('#sug').hidden=true;$('#q').setAttribute('aria-expanded','false')},180);
+$('#sug').addEventListener('pointerdown',e=>{const b=e.target.closest('button[data-b]');if(!b)return;e.preventDefault();clearTimeout(qt);sugPick(b.dataset.b)});
+$('#schips').addEventListener('click',e=>{const x=e.target.closest('[data-x]');if(x){st.sch.delete(x.dataset.x)}else if(e.target.closest('[data-clr]')){st.sch.clear()}else return;chipsShow();st.limit=80;st.open.clear();render()});
 ['reg','gun','gye','sortR','sortE','sortS','typC','sortC','numC'].forEach(id=>$('#'+id).onchange=e=>{st[id]=e.target.value;st.limit=80;render()});
 [['viewR','viewR'],['modeE','modeE'],['viewC','viewC'],['yrC','yrC']].forEach(([id,key])=>$('#'+id).querySelectorAll('button').forEach(b=>b.onclick=()=>{st[key]=key==='yrC'?+b.dataset.v:b.dataset.v;st.limit=80;$('#'+id).querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));st.open.clear();render()}));
 $('#out').addEventListener('click',e=>{
