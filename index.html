@@ -122,6 +122,7 @@ mark{background:#ffe58a;color:inherit;border-radius:2px;padding:0 1px}
 .themebtn{float:right;border:1px solid var(--line);background:var(--panel);color:var(--sub);border-radius:8px;font:inherit;font-size:12px;padding:5px 9px;cursor:pointer}
 
 /* 미등록 충원 */
+.cwk{font-size:11px;font-weight:500;color:var(--sub)}
 .cwmd{color:var(--accent);font-weight:700}
 .cwl{color:var(--ink);opacity:.75}
 .tbl.cw td.g{padding:6px 6px;text-align:center;font-variant-numeric:tabular-nums;min-width:74px}
@@ -201,7 +202,7 @@ mark{background:#ffe58a;color:inherit;border-radius:2px;padding:0 1px}
   <select id="typC" data-for="chg"><option value="">변동 있는 것 전체</option><option value="신설">신설</option><option value="정시 신규">정시 신규 배정</option><option value="정시 고정">정시 고정 인원 배정</option><option value="모집 중지">모집 중지</option><option value="정시 미선발">정시 미선발 전환</option><option value="27 정시 없음">27 정시 없음</option><option value="학과 개편">학과 개편(통합·분리)</option><option value="명칭 변경">명칭 변경</option><option value="군 변경">군 변경</option><option value="이월 시만 선발">이월 시만 선발</option><option value="전형 추가">지역의사·지역의료 전형 추가</option><option value="all">변동 없음 포함 전체</option></select>
   <span class="seg" data-for="cw" id="viewC"><button data-v="cmp" aria-pressed="true">대학별 4개년</button><button data-v="list" aria-pressed="false">학년도별 목록</button></span>
   <span class="seg" data-for="cw" id="yrC"><button data-v="0" aria-pressed="true">2026</button><button data-v="1" aria-pressed="false">2025</button><button data-v="2" aria-pressed="false">2024</button><button data-v="3" aria-pressed="false">2023</button></span>
-  <select id="sortC" data-for="cw"><option value="name">대학 이름순</option><option value="k0">2026 지원자 대비 합격 비율 높은 순</option><option value="kavg">평균 지원자 대비 합격 비율 높은 순</option><option value="r0">2026 추합비율 높은 순</option><option value="ravg">평균 추합비율 높은 순</option></select>
+  <select id="sortC" data-for="cw"><option value="name">대학 이름순</option><option value="k0">2026 합격률(지원자 대비 합격) 높은 순</option><option value="kavg">평균 합격률(지원자 대비 합격) 높은 순</option><option value="r0">2026 추합비율 높은 순</option><option value="ravg">평균 추합비율 높은 순</option></select>
   <select id="minY" data-for="cw"><option value="0">자료 있는 해: 전체</option><option value="2">2개년 이상</option><option value="3">3개년 이상</option><option value="4">4개년 모두</option></select>
   <select id="numC" data-for="cw"><option value="">번호 빈 행 포함</option><option value="1">번호 있는 행만</option></select>
   <select id="sortS" data-for="sch"><option value="time">마감 빠른 순</option><option value="name">대학 이름순</option></select>
@@ -593,20 +594,20 @@ function cwCell(r,mini){
   const mark=r.note?'<span class="cwnote" title="비고 있음">※</span>':'';
   if(r.md) return `<div class="cwv cwmd">미달${mark}</div><div class="cwn">지원 ${fmt(r.J)}${mini?'/':' · 모집 '}${fmt(r.G)}</div>`;
   if(!r.has) return `<span class="na">${esc(cwWhy(r))}</span>${mark}`;
-  return `<div class="cwv">${r.K!=null?pct(r.K):'–'}${mark}</div><div class="cwn cwl">추합 ${pct(r.L)}</div>${mini?'':`<div class="cwn">지원 ${fmt(r.J)} · 합격 ${fmt(r.I)}</div>`}`;
+  return `${mini?'<div class="cwk">합격률</div>':''}<div class="cwv">${mini?'':'<span class="cwk">합격률</span> '}${r.K!=null?pct(r.K):'–'}${mark}</div><div class="cwn cwl">추합 ${pct(r.L)}</div>${mini?'':`<div class="cwn">지원 ${fmt(r.J)} · 합격 ${fmt(r.I)}</div>`}`;
 }
 const cellHeat=r=>r?cwHeat(r.kv):'';
 function cwDetail(L){
   const rows=L.rs.map((r,yi)=>({r,yi})).filter(x=>x.r);
   const link=L.q.map((q,yi)=>q===1?`${CWY[yi+1]}→${CWY[yi]} 전형 표기만 달라 이음`:'').filter(Boolean);
-  let h=`<table class="cwd"><thead><tr><th>학년도</th><th>모집단위(그 해 표기)</th><th>군</th><th>계열</th><th class="num">모집</th><th class="num">지원</th><th class="num">번호</th><th class="num">총 합격</th><th class="num">지원자 대비 합격</th><th class="num">추합비율</th><th>비고</th></tr></thead><tbody>`;
+  let h=`<table class="cwd"><thead><tr><th>학년도</th><th>모집단위(그 해 표기)</th><th>군</th><th>계열</th><th class="num">모집</th><th class="num">지원</th><th class="num">번호</th><th class="num">총 합격</th><th class="num">합격률(지원자 대비 합격)</th><th class="num">추합비율</th><th>비고</th></tr></thead><tbody>`;
   rows.forEach(({r})=>{h+=`<tr><td>${r.y}</td><td>${hl(r.unit)}${r.uni!==L.school?`<div class="small">${esc(r.uni)}</div>`:''}</td><td>${esc(r.gun)}</td><td>${esc(r.gye)}</td><td class="num">${fmt(r.G)}</td><td class="num">${fmt(r.J)}</td><td class="num">${r.has?fmt(r.H):`<span class="na">${esc(cwWhy(r))}</span>`}</td><td class="num">${r.has?fmt(r.I):''}</td><td class="num"><b>${pct(r.K)}</b></td><td class="num">${pct(r.L)}</td><td class="small cwmemo">${hl(r.note)}</td></tr>`});
   h+='</tbody></table>';
   if(link.length) h+=`<div class="small" style="margin-top:6px">학년도 연결: ${link.join(' · ')}</div>`;
   return h;
 }
 function cwDetailCard(L){
-  return L.rs.map((r,yi)=>r?`<div class="cwline"><b>${r.y}</b> ${hl(r.unit)} · ${esc(r.gun)}군 · 모집 ${fmt(r.G)} · 지원 ${fmt(r.J)} · ${r.has?`총 합격 ${fmt(r.I)} · <b>지원자 대비 합격 ${pct(r.K)}</b> · 번호 ${fmt(r.H)} · 추합 ${pct(r.L)}`:`<span class="na">${esc(cwWhy(r))}</span>`}${r.note?`<div class="small cwmemo">비고: ${hl(r.note)}</div>`:''}${L.q[yi-1]===1?'<div class="small">다음 학년도와 전형 표기만 달라 이음</div>':''}</div>`:'').join('');
+  return L.rs.map((r,yi)=>r?`<div class="cwline"><b>${r.y}</b> ${hl(r.unit)} · ${esc(r.gun)}군 · 모집 ${fmt(r.G)} · 지원 ${fmt(r.J)} · ${r.has?`총 합격 ${fmt(r.I)} · <b>합격률 ${pct(r.K)}</b> · 번호 ${fmt(r.H)} · 추합 ${pct(r.L)}`:`<span class="na">${esc(cwWhy(r))}</span>`}${r.note?`<div class="small cwmemo">비고: ${hl(r.note)}</div>`:''}${L.q[yi-1]===1?'<div class="small">다음 학년도와 전형 표기만 달라 이음</div>':''}</div>`:'').join('');
 }
 function filtCwL(){
   let a=CWL.filter(L=>L.rs.some(r=>r&&cwPass(r))&&(!+st.minY||L.nK>=+st.minY)&&match(L.hay));
@@ -625,20 +626,20 @@ function renderCwCmp(){
   const a=filtCwL(); const grouped=st.sortC==='name';
   const rowsIn=a.flatMap(L=>L.rs.filter(r=>r&&cwPass(r)));
   let h=`<p class="count"><b>${a.length.toLocaleString()}</b>개 모집단위(학년도별로 이어 붙임) · ${new Set(a.map(L=>L.school)).size}개교</p>`;
-  h+=`<div class="chips">${CWY.map((y,yi)=>{const s=cwSum(rowsIn.filter(r=>r.yi===yi));return `<span class="chip">${y} 합격 <b>${pct(s.K)}</b> · 추합 ${pct(s.L)}<span class="lg"> · 번호 있는 ${s.m.toLocaleString()}/${s.n.toLocaleString()}행</span></span>`}).join('')}</div>`;
-  h+=`<div class="legend"><span><b>큰 숫자 = 지원자 대비 합격자 비율</b>(총 합격자수 ÷ 지원인원) · 작은 숫자 = 추합비율(번호 ÷ 모집인원)</span><span><i style="background:color-mix(in srgb,var(--accent) 50%,transparent)"></i>진할수록 지원자 대부분이 합격한 곳</span><span>미달 = 지원인원이 모집인원 이하 · ※ = 비고 · 행을 누르면 원자료</span></div>`;
+  h+=`<div class="chips">${CWY.map((y,yi)=>{const s=cwSum(rowsIn.filter(r=>r.yi===yi));return `<span class="chip">${y} 합격률 <b>${pct(s.K)}</b> · 추합 ${pct(s.L)}<span class="lg"> · 번호 있는 ${s.m.toLocaleString()}/${s.n.toLocaleString()}행</span></span>`}).join('')}</div>`;
+  h+=`<div class="legend"><span><b>합격률 = 지원자 대비 합격자 비율</b>(총 합격자수 ÷ 지원인원) · <b>추합</b> = 미등록 충원 비율(번호 ÷ 모집인원)</span><span><i style="background:color-mix(in srgb,var(--accent) 50%,transparent)"></i>진할수록 지원자 대부분이 합격한 곳</span><span>미달 = 지원인원이 모집인원 이하 · ※ = 비고 · 행을 누르면 원자료</span></div>`;
   if(!a.length) return h+'<div class="empty">조건에 맞는 모집단위가 없습니다.</div>';
   const show=a.slice(0,st.limit);
   const gunTxt=L=>L.guns.length>1?`<span class="pill gun">${esc(L.latest.gun)}</span><div class="small">군 변동: ${L.rs.filter(Boolean).map(r=>r.y%100+' '+r.gun).join(' · ')}</div>`:`<span class="pill gun">${esc(L.latest.gun)}</span>`;
   const unitTxt=L=>`${hl(L.latest.unit)}${L.names.length>1?`<div class="small">다른 해: ${L.names.filter(n=>n!==L.latest.unit).map(n=>hl(n)).join(', ')}</div>`:''}`;
-  const avgTxt=L=>L.avgK==null?'<span class="na">–</span>':`<div class="cwv">${pct(L.avgK)}</div><div class="cwn cwl">추합 ${L.avgL==null?'–':pct(L.avgL)}</div><div class="cwn">${L.nK}개년${L.mdN?` (미달 ${L.mdN})`:''}</div>`;
+  const avgTxt=L=>L.avgK==null?'<span class="na">–</span>':`${wide()?'':'<div class="cwk">합격률</div>'}<div class="cwv">${wide()?'<span class="cwk">합격률</span> ':''}${pct(L.avgK)}</div><div class="cwn cwl">추합 ${L.avgL==null?'–':pct(L.avgL)}</div><div class="cwn">${L.nK}개년${L.mdN?` (미달 ${L.mdN})`:''}</div>`;
   if(wide()){
     h+=`<table class="tbl cw"><thead><tr><th>모집단위</th><th>계열</th><th>군</th>${CWY.map(y=>`<th class="num" style="text-align:center">${y}</th>`).join('')}<th class="num" style="text-align:center">평균</th></tr></thead><tbody>`;
     let cur='';
     show.forEach(L=>{const id='W'+L.li;
       if(grouped&&L.school!==cur){cur=L.school;
         const sch=CWR.filter(r=>CW.OLD[cur]?(r.uni===cur||CW.OLD[cur].some(s=>s.endsWith(': '+r.uni))):r.uni===cur).filter(cwPass);
-        h+=`<tr class="grp-h"><td colspan="3">${hl(cur)} <span class="campus">${esc(L.latest.reg)}${CW.OLD[cur]?' · 예전 이름 '+esc(CW.OLD[cur].join(', ')):''}</span></td>${CWY.map((y,yi)=>{const s=cwSum(sch.filter(r=>r.yi===yi));return `<td class="small" style="text-align:center;font-weight:400">${s.m?`학교 합격 ${pct(s.K)}<br>추합 ${pct(s.L)}`:''}</td>`}).join('')}<td></td></tr>`}
+        h+=`<tr class="grp-h"><td colspan="3">${hl(cur)} <span class="campus">${esc(L.latest.reg)}${CW.OLD[cur]?' · 예전 이름 '+esc(CW.OLD[cur].join(', ')):''}</span></td>${CWY.map((y,yi)=>{const s=cwSum(sch.filter(r=>r.yi===yi));return `<td class="small" style="text-align:center;font-weight:400">${s.m?`학교 합격률 ${pct(s.K)}<br>추합 ${pct(s.L)}`:''}</td>`}).join('')}<td></td></tr>`}
       h+=`<tr class="row" data-id="${id}"><td>${grouped?'':`<div class="school">${hl(L.school)}</div>`}${unitTxt(L)}</td><td class="small" style="white-space:nowrap">${esc(L.latest.gye)}</td><td style="white-space:nowrap">${gunTxt(L)}</td>
       ${L.rs.map(r=>`<td class="g cwc" style="${cellHeat(r)}">${cwCell(r)}</td>`).join('')}<td class="g cwc">${avgTxt(L)}</td></tr>`;
       if(st.open.has(id)) h+=`<tr class="det"><td colspan="${4+CWY.length}">${cwDetail(L)}</td></tr>`;
@@ -669,8 +670,8 @@ function filtCwR(){
 const ALIASC={};Object.entries(CW.OLD).forEach(([k,v])=>v.forEach(s=>{ALIASC[s.split(': ')[1]]=k}));
 function renderCwList(){
   const a=filtCwR(); const s=cwSum(a);
-  let h=`<p class="count"><b>${CWY[st.yrC]}학년도</b> ${a.length.toLocaleString()}행 · 번호 있는 행 ${s.m.toLocaleString()} · 모집 ${s.G.toLocaleString()} · 번호 ${s.H.toLocaleString()} · 지원자 대비 합격 비율 <b>${pct(s.K)}</b> · 추합비율 <b>${pct(s.L)}</b></p>`;
-  h+=`<div class="legend"><span>합계·비율은 번호가 있는 행만 계산(엑셀 1행과 같은 방식)</span><span><i style="background:color-mix(in srgb,var(--accent) 50%,transparent)"></i>지원자 대비 합격 비율 진할수록 높음</span><span>행을 누르면 비고</span></div>`;
+  let h=`<p class="count"><b>${CWY[st.yrC]}학년도</b> ${a.length.toLocaleString()}행 · 번호 있는 행 ${s.m.toLocaleString()} · 모집 ${s.G.toLocaleString()} · 번호 ${s.H.toLocaleString()} · 합격률(지원자 대비 합격) <b>${pct(s.K)}</b> · 추합비율 <b>${pct(s.L)}</b></p>`;
+  h+=`<div class="legend"><span>합계·비율은 번호가 있는 행만 계산(엑셀 1행과 같은 방식)</span><span><i style="background:color-mix(in srgb,var(--accent) 50%,transparent)"></i>합격률(지원자 대비 합격자 비율) 진할수록 높음</span><span>행을 누르면 비고</span></div>`;
   if(!a.length) return h+'<div class="empty">조건에 맞는 모집단위가 없습니다.</div>';
   const show=a.slice(0,st.limit);
   if(wide()){
@@ -683,7 +684,7 @@ function renderCwList(){
     h+='</tbody></table>';
   }else{
     h+='<div class="cards">'+show.map(r=>`<div class="card"><div class="top"><div><div class="title">${hl(r.unit)}</div><div class="sub">${hl(r.uni)} · ${esc(r.reg)} · ${esc(r.gye)}</div></div><span class="pill gun">${esc(r.gun)}군</span></div>
-    <div class="cwrow"><span class="cwc" style="${cwHeat(r.kv)}">지원자 대비 합격 <b>${r.has?pct(r.K):(r.md?'미달':'–')}</b></span><span>추합 <b>${r.has?pct(r.L):'–'}</b></span></div>
+    <div class="cwrow"><span class="cwc" style="${cwHeat(r.kv)}">합격률 <b>${r.has?pct(r.K):(r.md?'미달':'–')}</b></span><span>추합 <b>${r.has?pct(r.L):'–'}</b></span></div>
     <div class="small">모집 ${fmt(r.G)} · 지원 ${fmt(r.J)}${r.has?` · 번호 ${fmt(r.H)} · 총 합격 ${fmt(r.I)}`:` · ${esc(cwWhy(r))}`}</div>
     ${r.note?`<details><summary>비고</summary><div class="cwmemo">${hl(r.note)}</div></details>`:''}</div>`).join('')+'</div>';
   }
@@ -730,13 +731,13 @@ function renderCw(){return st.viewC==='list'?renderCwList():renderCwCmp()}
 function render(){
   document.querySelectorAll('nav.tabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===st.tab));
   document.querySelectorAll('[data-for]').forEach(el=>el.style.display=el.dataset.for.split(' ').includes(st.tab)?'':'none');
-  if(st.tab==='cw'){$('#yrC').style.display=st.viewC==='list'?'':'none';$('#numC').style.display=st.viewC==='list'?'':'none';$('#minY').style.display=st.viewC==='cmp'?'':'none';[...$('#sortC').options].forEach(o=>{o.hidden=st.viewC==='list'&&(o.value==='kavg'||o.value==='ravg');if(o.value==='k0')o.textContent=st.viewC==='cmp'?'2026 지원자 대비 합격 비율 높은 순':'지원자 대비 합격 비율 높은 순';if(o.value==='r0')o.textContent=st.viewC==='cmp'?'2026 추합비율 높은 순':'추합비율 높은 순'});if($('#sortC').selectedOptions[0].hidden){st.sortC='name';$('#sortC').value='name'}}
+  if(st.tab==='cw'){$('#yrC').style.display=st.viewC==='list'?'':'none';$('#numC').style.display=st.viewC==='list'?'':'none';$('#minY').style.display=st.viewC==='cmp'?'':'none';[...$('#sortC').options].forEach(o=>{o.hidden=st.viewC==='list'&&(o.value==='kavg'||o.value==='ravg');if(o.value==='k0')o.textContent=st.viewC==='cmp'?'2026 합격률(지원자 대비 합격) 높은 순':'합격률(지원자 대비 합격) 높은 순';if(o.value==='r0')o.textContent=st.viewC==='cmp'?'2026 추합비율 높은 순':'추합비율 높은 순'});if($('#sortC').selectedOptions[0].hidden){st.sortC='name';$('#sortC').value='name'}}
   $('#meta').innerHTML=st.tab==='cw'?CWMETA:META0;$('.notice').style.display=st.tab==='cw'?'none':'';
   $('#out').innerHTML=st.tab==='ratio'?renderRatio():st.tab==='eng'?((st.modeE==='real'||st.modeE==='rd')?renderEngReal():renderEng()):st.tab==='chg'?renderChg():st.tab==='cw'?renderCw():renderSch();
   $('#foot').innerHTML=st.tab==='ratio'?'숫자 칸은 요강의 명목 배점 비율입니다. 단계별 전형은 최종 단계 기준이며 단계 구성은 세부 내용의 「기타 요소」에 있습니다.'
    :st.tab==='eng'?((st.modeE==='real'||st.modeE==='rd')?'실제 점수·실제 감점: 대학마다 수능 환산 총점(1000·600·500점 등)이 달라, 그 총점 그대로 영어 등급별 점수를 적었습니다. 같은 대학 안에서 다른 영역 점수와 바로 비교할 수 있습니다(국·수·탐 반영 방식은 「계산식·다른 영역」에). 영어 비율이 성적 순위로 정해지는 대학은 순위별로 나눴고, 표준점수 합에서 감점하는 대학은 총점이 「고정 안 됨」입니다. 요강에 식이 없어 계산한 곳은 메모에 적었습니다. 27 요강에서 뽑은 뒤 따로 검수했습니다.':'1000점 기준 계산: 비율형 = 원문 ÷ 영어 만점 × 영어 비율 × 1000, 감점·가산형 = 원문 × 1000 ÷ 기준 수능 총점. 같은 영어표라도 모집단위마다 영어 비율이 다르면 따로 나눠 계산했습니다.')
    :st.tab==='chg'?'서울·경인 53개교는 26학년도 정시 요강과 27학년도 정시 요강을 비교하고, 짝이 없는 모집단위는 두 해 요강 원문(변경사항·각주)으로 판정한 뒤 별도 검수했습니다(근거에 요강 쪽). 나머지 학교는 아직 26 정시 경쟁률 파일 기준입니다. 정원내 전형(지원자 입장에서 같은 정원외 계약학과 포함)만, 예체능 계열은 빼고 비교했고, 의약·일부 학과만 정리한 대학은 같은 범위만 비교했습니다. 인원 증감은 비교하지 않았습니다. 재직자·평생학습자·성인학습자·만학도 전형은 뺐습니다.'
-   :st.tab==='cw'?'<b>지원자 대비 합격자 비율</b> = 총 합격자수(모집인원 + 번호) ÷ 지원인원. 100%에 가까우면 지원자 대부분이 합격한 곳이고, 100%를 넘으면 지원자보다 합격 자리가 많았던 곳입니다. <b>추합비율</b> = 번호 ÷ 모집인원. 번호(누적)는 충원합격 순위(최초 합격 인원을 뺀 마지막 충원 합격자 순위)이며, 대학 원문이 충원 인원만 주거나 비율로만 공개해 환산한 곳은 비고에 적었습니다. 번호가 빈 행 중 지원인원이 모집인원 이하인 곳은 「미달」로 표시했고, 정렬·평균에서만 지원자 대비 합격 비율 100%로 셉니다(엑셀 값과 합계에는 넣지 않음). 그 밖의 빈 행은 사유(어디가 미제출·원문 없음·묶음 공개)를 표시했습니다. 자료: 어디가 「전형평가기준 및 전년도 결과공개」 + 대학 입학처 입시결과(2026-10-26 정리), 행 기준은 학년도별 정시 경쟁률 파일. 대상은 정원내 일반·지역인재 전형(인문·자연·공통 + 수능 100% 예체능)이며 특별전형·실기 전형은 뺐습니다. 대학별 4개년 보기는 같은 대학 안에서 모집단위 이름이 같거나 뒤의 전형 표기(_일반, _일반학생1 등)만 다른 것을 이어 붙인 것이며, 학과 개편·이름 변경은 잇지 않았습니다. 평균은 학년도 비율의 단순 평균입니다. 「지원자 대비 합격 비율 높은 순」 정렬에서는 100%를 넘는 값을 100%로 보고(지원자 전원 합격), 비율이 같으면 자료가 있는 해가 많은 곳을 앞에 둡니다.'
+   :st.tab==='cw'?'<b>합격률(지원자 대비 합격자 비율)</b> = 총 합격자수(모집인원 + 번호) ÷ 지원인원. 100%에 가까우면 지원자 대부분이 합격한 곳이고, 100%를 넘으면 지원자보다 합격 자리가 많았던 곳입니다. <b>추합비율</b> = 번호 ÷ 모집인원. 번호(누적)는 충원합격 순위(최초 합격 인원을 뺀 마지막 충원 합격자 순위)이며, 대학 원문이 충원 인원만 주거나 비율로만 공개해 환산한 곳은 비고에 적었습니다. 번호가 빈 행 중 지원인원이 모집인원 이하인 곳은 「미달」로 표시했고, 정렬·평균에서만 지원자 대비 합격 비율 100%로 셉니다(엑셀 값과 합계에는 넣지 않음). 그 밖의 빈 행은 사유(어디가 미제출·원문 없음·묶음 공개)를 표시했습니다. 자료: 어디가 「전형평가기준 및 전년도 결과공개」 + 대학 입학처 입시결과(2026-10-26 정리), 행 기준은 학년도별 정시 경쟁률 파일. 대상은 정원내 일반·지역인재 전형(인문·자연·공통 + 수능 100% 예체능)이며 특별전형·실기 전형은 뺐습니다. 대학별 4개년 보기는 같은 대학 안에서 모집단위 이름이 같거나 뒤의 전형 표기(_일반, _일반학생1 등)만 다른 것을 이어 붙인 것이며, 학과 개편·이름 변경은 잇지 않았습니다. 평균은 학년도 비율의 단순 평균입니다. 「합격률 높은 순」 정렬에서는 100%를 넘는 값을 100%로 보고(지원자 전원 합격), 비율이 같으면 자료가 있는 해가 많은 곳을 앞에 둡니다.'
    :'원서 마감 시각은 요강에 적힌 시각입니다. 대행 사이트 사정으로 바뀔 수 있으니 접수 직전 입학처 공지를 확인하세요.';
 }
 document.querySelectorAll('nav.tabs button').forEach(b=>b.onclick=()=>{st.tab=b.dataset.tab;st.limit=80;st.open.clear();try{localStorage.setItem('jeongsi_tab',st.tab)}catch(e){};render();window.scrollTo({top:0})});
